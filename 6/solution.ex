@@ -61,20 +61,25 @@ defmodule Day6 do
     walk({guard_start, {0, -1}}, floor_map)
   end
 
+  def unique_positions_from_path(tiles_walked) do
+    Enum.reduce(tiles_walked, MapSet.new(), fn {pos, _}, set -> MapSet.put(set, pos) end)
+  end
+
   def count_unique_tiles_walked(input) do
     {tiles_walked, _} = Day6.find_tiles_walked(input)
-
-    Enum.reduce(tiles_walked, MapSet.new(), fn {pos, _}, set -> MapSet.put(set, pos) end)
+    unique_positions_from_path(tiles_walked)
     |> MapSet.size()
   end
 
   def count_object_loop_positions({guard_start, floor_map}) do
-    Enum.count(floor_map, fn {pos, char} ->
-      if char != "#" do
-        {_, loops} = walk({guard_start, {0, -1}}, Map.put(floor_map, pos, "#"))
-        loops
-      end
-    end)
+    {tiles_walked, _} = Day6.find_tiles_walked({guard_start, floor_map})
+    unique_positions_from_path(tiles_walked)
+    |> Enum.count(
+        fn pos ->
+          {_, loops} = walk({guard_start, {0, -1}}, Map.put(floor_map, pos, "#"))
+          loops
+        end
+      )
   end
 end
 
