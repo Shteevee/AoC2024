@@ -88,7 +88,35 @@ defmodule Day10 do
     |> collect_trailhead_sets(height_map)
     |> sum_set_sizes()
   end
+
+  def trails_from_point({x, y}, height_map, total \\ 0) do
+    current_height = Map.get(height_map, {x, y})
+    if current_height == 9 do
+      total + 1
+    else
+      {x, y}
+      |> find_valid_next_pos(height_map)
+      |> Enum.reduce(
+          total,
+        fn next_pos, acc ->
+          trails_from_point(next_pos, height_map, acc)
+        end
+      )
+    end
+  end
+
+  def count_trails(height_map) do
+    height_map
+    |> find_starting_points()
+    |> Enum.map(
+      fn start ->
+        trails_from_point(start, height_map)
+      end
+    )
+    |> Enum.sum()
+  end
 end
 
 input = File.read!("input.txt") |> Day10.parse_file()
 IO.puts("Part 1: #{Day10.count_trailheads(input)}")
+IO.puts("Part 2: #{Day10.count_trails(input)}")
