@@ -88,8 +88,13 @@ defmodule Day9 do
       blocks
       |> Enum.reduce(
         {0, 0},
-        fn {space, id}, {total, idx} ->
-          {total + Enum.sum(Enum.map(idx..(idx + space - 1), &(&1 * id))), idx + space}
+        fn block, {total, idx} ->
+          case block do
+            {space, id} ->
+              {total + Enum.sum(Enum.map(idx..(idx + space - 1), &(&1 * id))), idx + space}
+            space ->
+              {total, idx + space}
+          end
         end
       )
 
@@ -103,7 +108,76 @@ defmodule Day9 do
     |> fill_spaces(reversed_blocks)
     |> calc_checksum()
   end
+
+  def find_suitable_space(file, block_size, block_idx) do
+    file
+    |> Enum.with_index()
+    |> Enum.find_index(fn {space_candidate, space_idx} ->
+      case space_candidate do
+        {_, _} -> false
+        space -> space >= block_size && block_idx > space_idx
+      end
+    end)
+  end
+
+  def replace_with_space(file, {block_size, _}, block_idx) do
+    {new_file, _} =
+      file
+      |> List.replace_at(block_idx, block_size)
+      |> Enum.reduce(
+        {[], 0},
+        fn block, {squashed_file, running_space} ->
+          case block do
+            {_, _} ->
+              if running_space > 0 do
+                {[block | [running_space | squashed_file]], 0}
+              else
+                {[block | squashed_file], running_space}
+              end
+
+            spaces ->
+              {squashed_file, running_space + spaces}
+          end
+        end
+      )
+
+    Enum.reverse(new_file)
+  end
+
+  def insert_block(file, space_idx, {block_size, id}, block_idx) do
+    spaces = Enum.at(file, space_idx)
+
+    if spaces == block_size do
+      List.replace_at(file, space_idx, {block_size, id})
+      |> replace_with_space({block_size, id}, block_idx)
+    else
+      file
+      |> List.replace_at(space_idx, spaces - block_size)
+      |> List.insert_at(space_idx, {block_size, id})
+      |> replace_with_space({block_size, id}, block_idx + 1)
+    end
+  end
+
+  def find_unfragged_compact_file_checksum(blocks) do
+    blocks
+    |> reverse_memory_blocks()
+    |> Enum.reduce(
+      blocks,
+      fn {block_size, id}, file ->
+        block_idx = Enum.find_index(file, &(&1 == {block_size, id}))
+        space_idx = find_suitable_space(file, block_size, block_idx)
+
+        if space_idx do
+          insert_block(file, space_idx, {block_size, id}, block_idx)
+        else
+          file
+        end
+      end
+    )
+    |> calc_checksum()
+  end
 end
 
 input = File.read!("input.txt") |> Day9.parse_file()
 IO.puts("Part 1: #{Day9.find_compacted_file_checksum(input)}")
+IO.puts("Part 2: #{Day9.find_unfragged_compact_file_checksum(input)}")
