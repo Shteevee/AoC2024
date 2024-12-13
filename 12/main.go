@@ -59,7 +59,6 @@ func visit(p point, gardens map[point]*plant, area []point) []point {
 
 func findAreas(gardens map[point]*plant) [][]point {
 	areas := [][]point{}
-
 	for k, v := range gardens {
 		if !v.visited {
 			areas = append(areas, visit(k, gardens, []point{}))
@@ -69,7 +68,7 @@ func findAreas(gardens map[point]*plant) [][]point {
 	return areas
 }
 
-func findPerimeter(area []point, gardens map[point]*plant) int {
+func findPerimeterLength(area []point, gardens map[point]*plant) int {
 	perimeter := 0
 	for _, p := range area {
 		neighbors := neighbors(p)
@@ -83,12 +82,74 @@ func findPerimeter(area []point, gardens map[point]*plant) int {
 	return perimeter
 }
 
-func calcFenceCost(gardens map[point]*plant) int {
-	areas := findAreas(gardens)
-
+func calcFenceCost(areas [][]point, gardens map[point]*plant) int {
 	total := 0
 	for _, area := range areas {
-		total += len(area) * findPerimeter(area, gardens)
+		total += len(area) * findPerimeterLength(area, gardens)
+	}
+
+	return total
+}
+
+func findAreaSet(area []point, gardens map[point]*plant) map[point]bool {
+	areaSet := map[point]bool{}
+	for _, p := range area {
+		areaSet[p] = true
+	}
+
+	return areaSet
+}
+
+func countCorners(area map[point]bool) int {
+	corners := 0
+
+	for p := range area {
+		left, right := point{x: p.x - 1, y: p.y}, point{x: p.x + 1, y: p.y}
+		up, down := point{x: p.x, y: p.y - 1}, point{x: p.x, y: p.y + 1}
+		topLeft, topRight := point{x: p.x - 1, y: p.y - 1}, point{x: p.x + 1, y: p.y - 1}
+		botLeft, botRight := point{x: p.x - 1, y: p.y + 1}, point{x: p.x + 1, y: p.y + 1}
+
+		if area[left] && area[up] && !area[topLeft] {
+			corners += 1
+		}
+
+		if area[right] && area[up] && !area[topRight] {
+			corners += 1
+		}
+
+		if area[left] && area[down] && !area[botLeft] {
+			corners += 1
+		}
+
+		if area[right] && area[down] && !area[botRight] {
+			corners += 1
+		}
+
+		if !area[right] && !area[down] {
+			corners += 1
+		}
+
+		if !area[left] && !area[down] {
+			corners += 1
+		}
+
+		if !area[right] && !area[up] {
+			corners += 1
+		}
+
+		if !area[left] && !area[up] {
+			corners += 1
+		}
+	}
+
+	return corners
+}
+
+func calcDiscountFenceCost(areas [][]point, gardens map[point]*plant) int {
+	total := 0
+	for _, area := range areas {
+		areaSet := findAreaSet(area, gardens)
+		total += len(area) * countCorners(areaSet)
 	}
 
 	return total
@@ -108,8 +169,10 @@ func main() {
 
 	scanner := bufio.NewScanner(file)
 	gardens := parseGardens(scanner)
+	areas := findAreas(gardens)
 
-	fmt.Println("Part 1:", calcFenceCost(gardens))
+	fmt.Println("Part 1:", calcFenceCost(areas, gardens))
+	fmt.Println("Part 2:", calcDiscountFenceCost(areas, gardens))
 
 	log.Printf("Time taken: %s", time.Since(start))
 }
