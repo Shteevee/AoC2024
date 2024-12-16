@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"slices"
-	"sort"
 	"time"
 )
 
@@ -158,7 +157,7 @@ func pushVertical(robot pos, warehouse map[pos]rune, step pos) (pos, map[pos]run
 				newRow = append(newRow, nextP)
 			}
 		}
-		sort.Slice(newRow, func(i, j int) bool { return newRow[i].x < newRow[j].x })
+
 		for _, p := range newRow {
 			if warehouse[p] == ']' && !slices.Contains(newRow, pos{p.x - 1, p.y}) {
 				newRow = append(newRow, pos{x: p.x - 1, y: p.y})
