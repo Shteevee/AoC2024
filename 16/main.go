@@ -5,6 +5,7 @@ import (
 	"container/heap"
 	"fmt"
 	"log"
+	"maps"
 	"os"
 	"time"
 )
@@ -120,7 +121,7 @@ func calcDist(prev qItem, next directedPos) int {
 	return dist
 }
 
-func findLowestScoreThroughMaze(start pos, end pos, walls map[pos]bool) int {
+func findLowestScoreThroughMaze(start pos, end pos, walls map[pos]bool) (*qItem, bool) {
 	q := &PriorityQueue{&qItem{pos: start, dir: '>'}}
 	heap.Init(q)
 	visited := map[directedPos]bool{}
@@ -132,7 +133,7 @@ func findLowestScoreThroughMaze(start pos, end pos, walls map[pos]bool) int {
 		case visited[dPos]:
 			continue
 		case u.pos == end:
-			return u.dist
+			return u, true
 		default:
 			visited[dPos] = true
 			neighbors := nextNeighbors(*u, walls)
@@ -143,7 +144,33 @@ func findLowestScoreThroughMaze(start pos, end pos, walls map[pos]bool) int {
 		}
 	}
 
-	return -1
+	return &qItem{}, false
+}
+
+func findUniqTilesOfAllBestPaths(start pos, walls map[pos]bool, end *qItem) map[pos]bool {
+	uniqTiles := map[pos]bool{}
+	shortestPath := end.dist
+	path := []pos{}
+	next := end
+	for next.prev != nil {
+		path = append(path, next.pos)
+		uniqTiles[next.pos] = true
+		next = next.prev
+	}
+
+	for _, p := range path {
+		newWalls := maps.Clone(walls)
+		newWalls[p] = true
+		if e, ok := findLowestScoreThroughMaze(start, end.pos, newWalls); ok && e.dist == shortestPath {
+			for e.prev != nil {
+				uniqTiles[e.pos] = true
+				e = e.prev
+			}
+			uniqTiles[e.pos] = true
+		}
+	}
+
+	return uniqTiles
 }
 
 func main() {
@@ -161,9 +188,10 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	s, e, walls := parseMaze(scanner)
 
-	shortestPath := findLowestScoreThroughMaze(s, e, walls)
-
-	fmt.Println("Part 1:", shortestPath)
+	end, _ := findLowestScoreThroughMaze(s, e, walls)
+	uniqTiles := findUniqTilesOfAllBestPaths(s, walls, end)
+	fmt.Println("Part 1:", end.dist)
+	fmt.Println("Part 2:", len(uniqTiles))
 
 	log.Printf("Time taken: %s", time.Since(start))
 }
