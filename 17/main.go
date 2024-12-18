@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -155,6 +156,26 @@ func performProgram(reg registers, program []int) []int {
 	return outs
 }
 
+func findFirstProgramMatch(program []int, start int, match []int) int {
+	outs := []int{}
+	i := start
+	for !slices.Equal(match, outs) {
+		outs = performProgram(registers{i, 0, 0}, program)
+		i++
+	}
+	return i - 1
+}
+
+// think this could be smarter but it's smart enough
+func findRegStartToCreateProgram(program []int) int {
+	v := 0
+	for i := len(program) - 1; i >= 0; i-- {
+		match := program[i:]
+		v = findFirstProgramMatch(program, v*8, match)
+	}
+	return v
+}
+
 func main() {
 	start := time.Now()
 	file, err := os.Open("input.txt")
@@ -172,6 +193,7 @@ func main() {
 	outs := performProgram(regs, program)
 
 	fmt.Println("part 1:", formatOutput(outs))
+	fmt.Println("part 2:", findRegStartToCreateProgram(program))
 
 	log.Printf("Time taken: %s", time.Since(start))
 }
